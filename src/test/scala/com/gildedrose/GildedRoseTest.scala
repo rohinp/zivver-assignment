@@ -33,14 +33,22 @@ class GildedRoseTest  extends AnyFlatSpec with Matchers {
         app.items(0).quality should equal(9)
       }
 
-      it should "not sell of dec quality of Sulfuras" in {
-        val items = Array[Item](new Item("Sulfuras", 1, 10))
+      it should "Sulfuras with invalid values" in {
+        val items = Array[Item](new Item("Sulfuras, Hand of Ragnaros", 0, 0))
         val app = new GildedRose(items)
         app.updateQuality()
-        app.items(0).name should equal ("Sulfuras")
-        //this is not a valid behavior it must fail
+        app.items(0).name should equal ("Sulfuras, Hand of Ragnaros")
         app.items(0).sellIn should equal(0)
-        app.items(0).quality should equal(9)
+        app.items(0).quality should equal(0)
+      }
+
+      it should "not sell of dec quality of Sulfuras" in {
+        val items = Array[Item](new Item("Sulfuras, Hand of Ragnaros", 1, 10))
+        val app = new GildedRose(items)
+        app.updateQuality()
+        app.items(0).name should equal ("Sulfuras, Hand of Ragnaros")
+        app.items(0).sellIn should equal(1)
+        app.items(0).quality should equal(10)
       }
 
       it should "degrade quality twice once sell date passed" in {
