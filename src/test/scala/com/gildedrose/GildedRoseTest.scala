@@ -9,8 +9,8 @@ class GildedRoseTest  extends AnyFlatSpec with Matchers {
         val app = new GildedRose(items)
         app.updateQuality()
         app.items(0).name should equal ("foo")
-        //no validations on input
         app.items(0).sellIn should equal(-2)
+        //no validations on input quality cant be negative
         app.items(0).quality should equal(-1)
       }
 
@@ -20,7 +20,7 @@ class GildedRoseTest  extends AnyFlatSpec with Matchers {
         app.updateQuality()
         app.items(0).name should equal ("foo")
         app.items(0).sellIn should equal(0)
-        //no validations on input, it must fail
+        //no validations on input, it must fail, quality cant be more than 50
         app.items(0).quality should equal(99)
       }
 
@@ -58,7 +58,6 @@ class GildedRoseTest  extends AnyFlatSpec with Matchers {
         app.items(0).name should equal ("foo")
 
         app.items(0).quality should equal(8)
-        //this is not a valid behavior it must be 0
         app.items(0).sellIn should equal(-1)
       }
 
@@ -99,7 +98,6 @@ class GildedRoseTest  extends AnyFlatSpec with Matchers {
         app.items(0).name should equal ("Backstage passes to a TAFKAL80ETC concert")
 
         app.items(0).quality should equal(0)
-        //invalid behaviour
         app.items(0).sellIn should equal(-1)
       }
 
@@ -110,7 +108,6 @@ class GildedRoseTest  extends AnyFlatSpec with Matchers {
         app.items(0).name should equal ("Backstage passes to a TAFKAL80ETC concert")
 
         app.items(0).quality should equal(0)
-        //invalid behaviour for invalid input
         app.items(0).sellIn should equal(-2)
       }
 

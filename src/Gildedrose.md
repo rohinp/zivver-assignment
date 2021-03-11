@@ -1,3 +1,13 @@
+# Steps taken for refactoring.
+
+
+1. Add tests, most important without that cant refactor
+2. Start refactoring
+3. test, if broken fix it
+4. Continue from step #2 again till implementation obeys SOLID principles :-) 
+
+> Note: Please check the git commit logs for the sequence of oprerations performed.
+
 # Gilded Rose prolem statement for reference:
 
 Hi and welcome to team Gilded Rose. As you know, we are a small inn with a prime location in a prominent city ran by a friendly innkeeper named Allison. We also buy and sell only the finest goods. Unfortunately, our goods are constantly degrading in quality as they approach their sell by date. We have a system in place that updates our inventory for us. It was developed by a no-nonsense type named Leeroy, who has moved on to new adventures. Your task is to add the new feature to our system so that we can begin selling a new category of items. First an introduction to our system:
