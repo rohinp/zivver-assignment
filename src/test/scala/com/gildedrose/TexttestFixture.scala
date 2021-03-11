@@ -16,14 +16,16 @@ object TexttestFixture {
     )
     val app = new GildedRose(items)
     val days = if (args.length > 0) args(0).toInt + 1 else 2
-    for (i <- 0 until days) {
-      System.out.println("-------- day " + i + " --------")
-      System.out.println("name, sellIn, quality")
-      for (item <- items) {
-        System.out.println(item.name + ", " + item.sellIn + ", " + item.quality)
+    
+    def loop(daysLeft:Int, newItems:Array[Item]):Unit = {
+      if(daysLeft >= days) ()
+      else {
+        println("-------- day " + daysLeft + " --------")
+        println("name, sellIn, quality")  
+        newItems.foreach{item => println(item.name + ", " + item.sellIn + ", " + item.quality)}  
+        loop(daysLeft + 1, new GildedRose(items).updateQuality())
       }
-      System.out.println()
-      app.updateQuality()
     }
+    loop(0,items)
   }
 }
