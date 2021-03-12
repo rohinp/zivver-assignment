@@ -1,10 +1,11 @@
 package com.gildedrose
 import util.chaining.scalaUtilChainingOps
 import Item._
+import ItemState._
 
 type SellInAndQuality = (Int,Int)
 
-//This is like a streatygy pattern implementation
+//This is like a streatygy pattern implementation or just a function :-)
 sealed trait ItemUpdateStrategy extends (Item => Item)
 
 case object OrdinaryItem extends ItemUpdateStrategy:
@@ -49,3 +50,8 @@ class GildedRose(val items: Array[Item]):
       i <- items
       s <- Array(selectStrategy(i))
     yield s(i)
+
+  def updateQualityV2():Array[Item] = 
+    for
+      i <- items
+    yield mainCombinator.run(i).fold(i)(_._2)

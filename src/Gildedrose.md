@@ -14,6 +14,7 @@
 3. `GildedRose` breaks down the update function using strategy pattern.
 4. Strategy pattern here is nothing but functions :-)
 
+> OneMore Note: There is a version 2 of GildedRosev2 which is more of FP approach. Starting with small tiny simple combinators and then building on top of it. Working with combinators is fun, it grows organically :-)
 
 ## Gilded Rose prolem statement for reference:
 
