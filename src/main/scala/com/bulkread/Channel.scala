@@ -10,7 +10,8 @@ import java.util.UUID
 
 import scala.util.chaining._
 
-case class InitRecord(productId:Int, countryCode:String)
+case class ProductRecord(productId:Int, countryCode:Vector[String]):
+  def format:String = s"$productId,${countryCode.mkString(",")}"
 
 val RECORD_SIZE = 9 //Chars/Bytes this can change if we mess with the id :-)
 val CHUNK_SIZE = RECORD_SIZE * 1000000 //RECORD_SIZE * 10000000 //size of 10 million records, it goes roughly little less then 100MB
@@ -41,6 +42,7 @@ object SeqFileChannel:
   import FileChannelFlow._
   def pure[A](a:A):SeqFileChannel[A] = SeqFileChannel(s => (a,s))
   def get[FileChannelFlow] = SeqFileChannel{_.fold(s => (s,s))(c => (c,c))}
+  def getMeta[MetaData] = SeqFileChannel{_.fold(s => (s.metaData,s))(c => (c.metaData,c))}
 
   extension (flow:FileChannelFlow) def fold[B](stop:Stop => B)(f:Continue => B):B = 
     flow match
@@ -62,19 +64,19 @@ object SeqFileChannel:
       else (buf, Stop(md))
   }
 
-  def toRecords:ByteBuffer => SeqFileChannel[Vector[InitRecord]] = 
+  def toRecords:ByteBuffer => SeqFileChannel[Vector[ProductRecord]] = 
     buf => SeqFileChannel{
-      case Stop(md) => (Vector.empty[InitRecord], Stop(md))
+      case Stop(md) => (Vector.empty[ProductRecord], Stop(md))
       case c@Continue(fc, md) => 
         val arr = new Array[Byte](RECORD_SIZE)
-        def loop(acc:Vector[InitRecord],ids:Vector[Int]):(Vector[Int],Vector[InitRecord]) = 
+        def loop(acc:Vector[ProductRecord],ids:Vector[Int]):(Vector[Int],Vector[ProductRecord]) = 
           if(!buf.hasRemaining)
             (ids,acc)
           else 
             buf.get(arr)
             arr.map(_.toChar).mkString.split(',').toList match
               case id::country::Nil => 
-                loop(acc.appended(InitRecord(id.toInt, country)), ids.appended(id.toInt))
+                loop(acc.appended(ProductRecord(id.toInt, Vector(country))), ids.appended(id.toInt))
               case _ => 
                 (ids,acc)
         val (ids,records) = loop(Vector(), Vector())
@@ -99,15 +101,20 @@ object SeqFileChannel:
     */
   
     
-  def writeRecords[A]:A => SeqFileChannel[MetaData] = 
-    records => SeqFileChannel(
-      _.fold(s => (s.metaData, s))(c => (c.metaData, c))
+  def writeRecords:Vector[String] => MetaData => SeqFileChannel[MetaData] = 
+    records => fileName => SeqFileChannel(
+      _.fold(s => (s.metaData, s))(c => {
+        println(s"file Name = ${fileName.map(_._1).toSet}")
+        println("-"*50)
+        (c.metaData, c)
+      })
     )
   
 
-  def program(f:Vector[InitRecord] => Vector[(Int, Vector[String])]):SeqFileChannel[MetaData] = 
+  def program(f:Vector[ProductRecord] => Vector[String]):SeqFileChannel[MetaData] = 
     for
       buf <- next
       records <- toRecords(buf)
-      md <- writeRecords(f(records))
+      md <- getMeta
+      _ <- writeRecords(f(records))(md)
     yield md

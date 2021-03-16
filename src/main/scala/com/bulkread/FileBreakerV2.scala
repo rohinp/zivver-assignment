@@ -20,12 +20,15 @@ def createFilesv1:String => Operation => Seq[TmpFile] =
     val buffer = ByteBuffer.allocate(CHUNK_SIZE)
     val lineBuffer = ByteBuffer.allocate(RECORD_SIZE)
     val seed = FileChannelFlow.Continue(fileChannel,Map())
-    program(r => {
-      r.groupBy(_.productId).view
-      .mapValues(_.map(_.countryCode))
+    program(
+      _.groupBy(_.productId)
+      .view
+      .mapValues(_.map(_.countryCode).flatten.mkString(","))
       .toVector
       .sortBy(_._1)
-    }).pipe(p => repeat1(seed ,p)).run(seed).tap(md => println(md._1.size))
+      .map(t => s"${t._1},${t._2}")    
+    ).pipe(p => repeat(seed ,p)).result.run(seed)
+
     Seq()
 
 
