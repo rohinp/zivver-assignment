@@ -51,6 +51,7 @@ class GildedRose(val items: Array[Item]):
       s <- Array(selectStrategy(i))
     yield s(i)
 
+  //version 2 function call
   def updateQualityV2():Array[Item] = 
     for
       i <- items

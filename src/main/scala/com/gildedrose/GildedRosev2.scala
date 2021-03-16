@@ -10,8 +10,12 @@ import Item._
  * We can make the code generic and make it work for other similar kind of situation
  * But for simplicity all types are based on Item
  * 
- * The solution is based on creating combinators based on business 
+ * The solution is based on creating combinators
  * And in the end composing to create the final combinator
+ * What I means is create simple small functions, compose to solve a bigger problem
+ * here Combinators, because we need functions which return functions.
+ * Composing these functions will return a new function :-)
+ * 
  * This solution is more FP way to do things :-)
  * 
  * I liked this one :-)
@@ -39,28 +43,28 @@ object ItemState:
       newItem <- get
     yield newItem
   def nameSat(name:String, f:Item => Item):ItemState[Item] = sat(_.name == name, f)
-  
+  //This is similar to imlicit class in scala2
   extension [A](a:ItemState[A]) def |>(b:ItemState[A]):ItemState[A] = a.or(b)
 
   //derived combinators with business implementation
   def simple:ItemState[Item] =
     sat(_ => true, decrSellIn(_)
       .pipe(i => if(i.sellIn >= 0 ) decrQuality(i) else (decrQuality compose decrQuality)(i)))
-  def qualityIncrementer:String => ItemState[Item] = name => nameSat(name, decrSellIn(_).pipe(incrQuality))
-  def neverToSold:String => ItemState[Item] = name => nameSat(name, identity)
-  def backstagePasses:String => ItemState[Item] = name => 
-    nameSat(name, decrSellIn(_)
+  def qualityIncrementer:String => ItemState[Item] = nameSat(_, decrSellIn(_).pipe(incrQuality))
+  def neverToSold:String => ItemState[Item] = nameSat(_, identity)
+  def backstagePasses:String => ItemState[Item] = 
+    nameSat(_, decrSellIn(_)
       .pipe(i => if(i.sellIn > 10) incrQuality(i) else i)
       .pipe(i => if(i.sellIn > 5 && i.sellIn <= 10) (incrQuality compose incrQuality)(i) else i)
       .pipe(i => if(i.sellIn > 0 && i.sellIn <= 5) (incrQuality compose incrQuality compose incrQuality)(i) else i)
       .pipe(i => if(i.sellIn <= 0) resetQuality(i) else i))
-  def conjured:String => ItemState[Item] = name => 
-    nameSat(name, decrSellIn(_)
+  def conjured:String => ItemState[Item] = 
+    nameSat(_, decrSellIn(_)
       .pipe(decrQuality)
       .pipe(decrQuality))
 
-  //combinig with the named combinator more specific imlementations
-  //kind of an entry point combinator
+  //below is where actually all combinators used
+  //entry point or main combinator
   def mainCombinator:ItemState[Item] = 
     (qualityIncrementer("Aged Brie") |>
       backstagePasses("Backstage passes to a TAFKAL80ETC concert") |>
