@@ -9,29 +9,31 @@ import java.nio.charset.StandardCharsets
 import java.io.FileOutputStream;
 
 import scala.util.chaining._
-import SeqFileChannel._
+import SeqFlow._
 
+//import what configuration to use here
+import SmallFileConfiguration.conf
 
-def createFilesv1:String => Operation => Seq[TmpFile] = 
-  file => level => 
+def start:String => Unit = 
+  file => 
     val path = Paths.get(file)
     val fileChannel = FileChannel.open(path)
     val fileSize = fileChannel.size
-    val buffer = ByteBuffer.allocate(CHUNK_SIZE)
-    val lineBuffer = ByteBuffer.allocate(RECORD_SIZE)
-    val seed = FileChannelFlow.Continue(fileChannel,Vector())
-    program(
+    val buffer = ByteBuffer.allocate(conf.chunkSize)
+    val lineBuffer = ByteBuffer.allocate(conf.recordSize)
+    val seed = FlowControl.Continue(fileChannel,MetaData(Vector(),Map(), Set()))
+    readChunkGroupSortAndWrite(
       _.groupBy(_.productId)
       .view
       .mapValues(_.map(_.countryCode).flatten.mkString(","))
       .toVector
       .sortBy(_._1)
-      .map(t => s"${t._1},${t._2}")
+      .map(t => s"${t._1},${t._2}\n")
     ).pipe(p => repeat(seed ,p)).result.run(seed)
 
-    Seq()
+    ()
 
 
-@main def fileBreaker1 =
-    createFilesv1("test.csv")(Operation.Split_Map)
+@main def run =
+    start("test_small.csv")
     //cleanUpTempDirectory
