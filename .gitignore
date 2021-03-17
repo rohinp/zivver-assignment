@@ -5,3 +5,4 @@ project/project
 project/target
 target
 *.csv
+*.DS_Store

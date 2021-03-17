@@ -7,21 +7,20 @@ import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.io.FileOutputStream
 import java.util.UUID
-
+import java.io.FileOutputStream;
+import java.io.File
 import scala.util.chaining._
 
 case class ProductRecord(productId:Int, countryCode:Vector[String]):
-  def format:String = s"$productId,${countryCode.mkString(",")}"
+  def format:String = s"$productId -> [${countryCode.mkString(",")}]"
 
-val RECORD_SIZE = 9 //Chars/Bytes this can change if we mess with the id :-)
-val CHUNK_SIZE = RECORD_SIZE * 1000000 //RECORD_SIZE * 10000000 //size of 10 million records, it goes roughly little less then 100MB
-type MetaData = Map[String, Vector[Int]]
+val RECORD_SIZE = 10 //Chars/Bytes this can change if we mess with the id :-)
+val CHUNK_SIZE = RECORD_SIZE * 10000000 //size of 10 million records, it goes roughly little less then 100MB
+type MetaData = Vector[(String, Vector[Int])] // ID => File
 
 enum FileChannelFlow:
   case Continue(file:FileChannel, metaData:MetaData)
   case Stop(metaData:MetaData)
-
-//case class ChannelRecord(file:FileChannel, metaData:MetaData)
 
 case class SeqFileChannel[A](run:FileChannelFlow => (A,FileChannelFlow)):
   import SeqFileChannel._
@@ -76,12 +75,12 @@ object SeqFileChannel:
             buf.get(arr)
             arr.map(_.toChar).mkString.split(',').toList match
               case id::country::Nil => 
-                loop(acc.appended(ProductRecord(id.toInt, Vector(country))), ids.appended(id.toInt))
+                loop(acc.appended(ProductRecord(id.toInt, Vector(country.trim))), ids.appended(id.toInt))
               case _ => 
                 (ids,acc)
         val (ids,records) = loop(Vector(), Vector())
         val fileName = UUID.randomUUID.toString
-        (records, c.copy(metaData = c.metaData + (fileName -> ids.distinct.sorted)))
+        (records, c.copy(metaData = c.metaData.appended(fileName -> ids.distinct.sorted)))
     }
 
   import scala.util.control.TailCalls._
@@ -104,8 +103,17 @@ object SeqFileChannel:
   def writeRecords:Vector[String] => MetaData => SeqFileChannel[MetaData] = 
     records => fileName => SeqFileChannel(
       _.fold(s => (s.metaData, s))(c => {
-        println(s"file Name = ${fileName.map(_._1).toSet}")
-        println("-"*50)
+        val file = fileName.map(_._1).last
+        val f = s"$TMP_DIRECTORY/${tmpFilePrefix(file)(Operation.Split_Map)(0)}"
+        val channel = new FileOutputStream(new File(f)).getChannel();
+        val strBytes = records.mkString.getBytes()
+        val buffer = ByteBuffer.allocate(strBytes.length);
+        buffer.put(strBytes);
+        buffer.flip();
+        channel.write(buffer);
+        channel.close();
+        buffer.clear 
+        println(s"Written to file $f")
         (c.metaData, c)
       })
     )
@@ -115,6 +123,6 @@ object SeqFileChannel:
     for
       buf <- next
       records <- toRecords(buf)
-      md <- getMeta
+      md <- getMeta 
       _ <- writeRecords(f(records))(md)
     yield md

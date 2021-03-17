@@ -19,19 +19,19 @@ def createFilesv1:String => Operation => Seq[TmpFile] =
     val fileSize = fileChannel.size
     val buffer = ByteBuffer.allocate(CHUNK_SIZE)
     val lineBuffer = ByteBuffer.allocate(RECORD_SIZE)
-    val seed = FileChannelFlow.Continue(fileChannel,Map())
+    val seed = FileChannelFlow.Continue(fileChannel,Vector())
     program(
       _.groupBy(_.productId)
       .view
       .mapValues(_.map(_.countryCode).flatten.mkString(","))
       .toVector
       .sortBy(_._1)
-      .map(t => s"${t._1},${t._2}")    
+      .map(t => s"${t._1},${t._2}")
     ).pipe(p => repeat(seed ,p)).result.run(seed)
 
     Seq()
 
 
 @main def fileBreaker1 =
-    createFilesv1("test_small.csv")(Operation.Split_Map)
+    createFilesv1("test.csv")(Operation.Split_Map)
     //cleanUpTempDirectory
