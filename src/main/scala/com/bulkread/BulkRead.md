@@ -44,8 +44,8 @@ Steps to run:
 > $> runMain com.bulkread.run
 
 ## Some stats while runnng on random data generated form the utility given in the project
-for 10GB data file, and creating 48MB chunk it took 38minutes and for the heap and CPU usage please check below image
-![Jconsole Snapshot after execution](10GBFileProcessing.png)
+for 10GB data file, and creating 48MB chunk it took 38minutes and for the heap and CPU usage please check below image (JConsole snapshot)
+![Jconsole Snapshot after execution](/10GBFileProcessing.png)
 
 for 90MB file it took 20seconds.
 
