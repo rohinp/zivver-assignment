@@ -6,10 +6,15 @@ import java.nio.file.Paths
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.io.FileOutputStream
+import java.io.BufferedReader
+import java.io.BufferedWriter
+import java.io.FileReader
+import java.io.FileWriter
 import java.util.UUID
 import java.io.FileOutputStream;
 import java.io.File
 import scala.util.chaining._
+import scala.util.Using
 
 //Model
 case class ProductRecord(productId:Int, countryCode:Vector[String]):
@@ -56,6 +61,7 @@ case class SeqFlow[A](run:FlowControl => (A,FlowControl)):
 object SeqFlow:
   import FlowControl._
   //Contextual function to pass configuration implicitly
+  //better way to write types containing implicits
   type FlowWithConf[A] = Configuration ?=> SeqFlow[A]
 
   //more primitive combinators
@@ -66,6 +72,8 @@ object SeqFlow:
     flow match
       case s:Stop => stop(s)
       case c => f(c.asInstanceOf[Continue[F]])
+  //strange but due to type erasure and compile time warning need to do this.
+  //I dont see any harm for a small project like this :-)
 
   //derived combinartors
   def next:FlowWithConf[ByteBuffer] = SeqFlow{
@@ -90,7 +98,7 @@ object SeqFlow:
       case c@Continue(fc, md) => 
         val conf = summon[Configuration]
         val arr = new Array[Byte](conf.recordSize)
-        val fileName = UUID.randomUUID.toString
+        val fileName = s"${UUID.randomUUID.toString}.csv"
         def loop(acc:Vector[ProductRecord],metaData:MetaData):(MetaData,Vector[ProductRecord]) = 
           if(!buf.hasRemaining)
             (metaData,acc)
@@ -108,7 +116,7 @@ object SeqFlow:
 
   import scala.util.control.TailCalls._
   def repeat(flow:FlowControl , program:SeqFlow[MetaData]):TailRec[SeqFlow[MetaData]] = 
-    flow.fold(s => done(pure(s.metaData)))(c => {
+    flow.fold(s => done(pure(s.metaData.copy(operationsDone = s.metaData.operationsDone ++ Set(Operation.SplitAndGroup)))))(c => {
       val r = program.run(c)
       tailcall(repeat(r._2,program))
     })
@@ -123,13 +131,12 @@ object SeqFlow:
     */
   
     
-  def writeRecords:Vector[String] => MetaData => FlowWithConf[MetaData] = 
-    records => metaData => SeqFlow(
+  def writeRecords:Vector[String] => FlowWithConf[MetaData] = 
+    records => SeqFlow(
       _.fold(s => (s.metaData, s))(c => {
         val conf = summon[Configuration]
-        val file = metaData.listOfFiles.last
-        val f = s"${conf.tmpPath}/$file.csv"
-        val channel = new FileOutputStream(new File(f)).getChannel();
+        val filePath = s"${conf.tmpPath}/${c.metaData.listOfFiles.last}"
+        val channel = new FileOutputStream(new File(filePath)).getChannel();
         val strBytes = records.mkString.getBytes()
         val buffer = ByteBuffer.allocate(strBytes.length);
         buffer.put(strBytes);
@@ -137,19 +144,47 @@ object SeqFlow:
         channel.write(buffer);
         channel.close();
         buffer.clear
-        println(s"file written $f")
+        println(s"Tmp file written $filePath")
         (c.metaData, c)
       })
     )
   
-  def shuffleAndReduce(outputFile:String):SeqFlow[Unit] =
-      SeqFlow {
-        ???
-      }
-  def readChunkGroupSortAndWrite(f:Vector[ProductRecord] => Vector[String]):FlowWithConf[MetaData] = 
+  def readChunkGroupSortAndWrite(mapGroupAndSort:Vector[ProductRecord] => Vector[String]):FlowWithConf[MetaData] = 
     for
       buf <- next
       records <- toRecords(buf)
-      md <- getMeta 
-      _ <- writeRecords(f(records))(md)
+      md <- mapGroupAndSort.andThen(writeRecords)(records)
     yield md
+
+  def shuffleAndReduce(metaData:MetaData,outputFile:String):FlowWithConf[Unit] =
+      SeqFlow ( _ => {
+            val conf = summon[Configuration]
+            if(metaData.operationsDone.contains(Operation.SplitAndGroup)){
+              Using.Manager{
+                use => {
+                  val outputFileWritter = use(new BufferedWriter(new FileWriter(s"${conf.outputPath}/$outputFile")))
+                  val fileReaderMap = metaData.listOfFiles.map(fileName => fileName -> use(new BufferedReader(new FileReader(s"${conf.tmpPath}/$fileName")))).toMap
+                  metaData.fileMap.toVector.sortBy(_._1)
+                    .foreach{
+                      (productId, fileList) => {
+                        fileList
+                          .map(fileReaderMap)
+                          .map(_.readLine)
+                          .map(_.split(",").tail.toVector)
+                          .flatten.distinct.mkString(",")
+                          .pipe(l => s"$productId -> [$l]")
+                          .tap(_ => println(s"Processing for product ID $productId"))
+                          .pipe{l =>
+                            outputFileWritter.write(l)
+                            outputFileWritter.newLine
+                          }
+                      }
+                    }
+                }
+              }
+              ((), Stop(metaData = metaData.copy(operationsDone = metaData.operationsDone ++ Set(Operation.ShuffelAndReduce))))
+            }else {
+              ((), Stop(metaData))
+          }
+        }
+      )

@@ -23,6 +23,7 @@ There are some scala3 specific feaures used, as and when we encounter in code wi
 5. Now repeating the steps 1 to 4 for all the chunks read using combinator `repeat`
 6. One the file is divided into chunks with seasoned data along with metadata inhand, shuffeling and reducing can be done.
 7. To keep it simple shuffle and reduce are done in one step, reading files in order of product id from all the files and writing to the output or result file.
+8. `Using.Manager` works like wonder in this case as I wanted to read from multiple files and write into one file, w.r.t resource management.
 
 ### Improvements:
 There is lot to improve:
@@ -41,3 +42,14 @@ Steps to run:
 
 > $> sbt
 > $> runMain com.bulkread.run
+
+## Some stats while runnng on random data generated form the utility given in the project
+for 10GB data file, and creating 48MB chunk it took 38minutes and for the heap and CPU usage please check below image
+![Jconsole Snapshot after execution](10GBFileProcessing.png)
+
+for 90MB file it took 20seconds.
+
+## Machine on which the program was run
+RAM : 32GB
+CPU : 8Core
+OS : MAC OS

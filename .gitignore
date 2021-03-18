@@ -6,3 +6,5 @@ project/target
 target
 *.csv
 *.DS_Store
+*.txt
+.bsp

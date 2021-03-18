@@ -18,7 +18,7 @@ object SmallFileConfiguration:
 object LargeFileConfiguration:
   given conf:Configuration = Configuration(
     recordSize = 10,
-    chunkSize = 10 * 10000000, //around 100MB chunk
+    chunkSize = 10 * 10000000, //around 48MB chunk
     randomIDMax = 10000,
     inputFile = "test.csv"
   )
