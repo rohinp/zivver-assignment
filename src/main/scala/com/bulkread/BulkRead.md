@@ -23,12 +23,13 @@ There are some scala3 specific feaures used, as and when we encounter in code wi
 5. Now repeating the steps 1 to 4 for all the chunks read using combinator `repeat`
 6. One the file is divided into chunks with seasoned data along with metadata inhand, shuffeling and reducing can be done.
 7. To keep it simple shuffle and reduce are done in one step, reading files in order of product id from all the files and writing to the output or result file.
-8. `Using.Manager` works like wonder in this case as I wanted to read from multiple files and write into one file, w.r.t resource management.
+8. Step #7 is posible because of metadata maintained. MetaData is a map of productID -> [file1, file2 ...]. As all the chunks are sorted. Take a productID, read from all the files i.e shuffeling though we are not actually shuffling but reading, collecting take distint and write to the output file.
+9. `Using.Manager` works like wonder in this case as I wanted to read from multiple files and write into one file, w.r.t resource management.
 
 ### Improvements:
 There is lot to improve:
 1. The project is missing testing, those because of combinators we can write tests easily and test small parts of the application.
-2. Combinators need to be refined to handle exception.
+2. Combinators need to be refined to handle exception. As of now it's not that great.
 3. Also more smaller combinators, would have made code more testable and extendable.
 4. Concurrency, is something can be introduced at different parts of program to improve performance as current implementation is compeltely sequential. Though it'll also add to the complexity of th ecode.
 5. Can make it a cmd app, as of now it's a manual change in conf and run app through sbt.
@@ -53,3 +54,5 @@ for 90MB file it took 20seconds.
 RAM : 32GB
 CPU : 8Core
 OS : MAC OS
+
+```Note: Make sure the configuration is set before running the program. Make sure the record size is set/calculated correctly. If any issues we can set smaller chunk size, I'm sure it will work :-)```

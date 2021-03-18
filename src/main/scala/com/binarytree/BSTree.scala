@@ -33,7 +33,7 @@ object scala3:
    * Irrispective on of language we can have ADT's.
    * In this case a recursive ADT.
    * I suppose we must be able to construct one in any programming languge unless untill it gives provision for 
-   * Create data with relations
+   * Create data type with relations
    */
 
    /**
